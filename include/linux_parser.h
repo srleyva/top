@@ -5,27 +5,46 @@
 #include <regex>
 #include <string>
 
-namespace LinuxParser {
-// Paths
-const std::string kProcDirectory{"/proc/"};
-const std::string kCmdlineFilename{"/cmdline"};
-const std::string kCpuinfoFilename{"/cpuinfo"};
-const std::string kStatusFilename{"/status"};
-const std::string kStatFilename{"/stat"};
-const std::string kUptimeFilename{"/uptime"};
-const std::string kMeminfoFilename{"/meminfo"};
-const std::string kVersionFilename{"/version"};
-const std::string kOSPath{"/etc/os-release"};
-const std::string kPasswordPath{"/etc/passwd"};
+#include "process.h"
+#include "processor.h"
+#include "system.h"
 
-// System
-float MemoryUtilization();
-long UpTime();
-std::vector<int> Pids();
-int TotalProcesses();
-int RunningProcesses();
-std::string OperatingSystem();
-std::string Kernel();
+namespace LinuxParser {
+
+template <typename T> 
+T GetLinuxField(std::string const& field, std::string const& filename, char delim = '\n') {
+  std::string line;
+  std::string key;
+  T value;
+
+  std::ifstream filestream(filename);
+  if (filestream.is_open()) {
+    while(std::getline(filestream, line, delim)) {
+      std::istringstream linestream(line);
+      while (linestream >> key >> value) {
+        if (key == field) {
+          return value;
+        }
+      }
+    }
+  }
+  return value;
+}
+
+template <typename T> 
+T GetLinuxField(std::string const& filename, char delim = '\n') {
+  std::string line;
+  std::string key;
+  T value;
+
+  std::ifstream filestream(filename);
+  if (filestream.is_open()) {
+    std::getline(filestream, line, delim);
+    std::istringstream linestream(line);
+    linestream >> value;
+  }
+  return value;
+}
 
 // CPU
 enum CPUStates {
@@ -40,18 +59,38 @@ enum CPUStates {
   kGuest_,
   kGuestNice_
 };
-std::vector<std::string> CpuUtilization();
-long Jiffies();
-long ActiveJiffies();
-long ActiveJiffies(int pid);
-long IdleJiffies();
 
-// Processes
-std::string Command(int pid);
-std::string Ram(int pid);
-std::string Uid(int pid);
-std::string User(int pid);
-long int UpTime(int pid);
-};  // namespace LinuxParser
+class Parser : public OSParser {
+public:
+  // System Paths
+  inline static const std::string kProcDirectory{"/proc/"};
+  inline static const std::string kCmdlineFilename{"cmdline"};
+  inline static const std::string kCpuinfoFilename{"cpuinfo"};
+  inline static const std::string kStatusFilename{"status"};
+  inline static const std::string kStatFilename{"stat"};
+  inline static const std::string kUptimeFilename{"uptime"};
+  inline static const std::string kMeminfoFilename{"meminfo"};
+  inline static const std::string kVersionFilename{"version"};
+  inline static const std::string kOSPath{"/etc/os-release"};
+  inline static const std::string kPasswordPath{"/etc/passwd"};
+
+  Processor& Cpu() {return this->cpu_; }
+  std::vector<Process>& Processes();
+  float MemoryUtilization();
+  long UpTime();
+  int TotalProcesses();
+  int RunningProcesses();
+  std::string Kernel();
+  std::string OperatingSystem();
+
+private:
+  Processor cpu_;
+  std::vector<Process> processes_ {};
+
+  // System
+  std::vector<int> Pids();
+  std::vector<std::string> CpuUtilization();
+};
+};
 
 #endif
