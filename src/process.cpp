@@ -66,7 +66,7 @@ string Process::Ram() const {
   int kbRam = LinuxParser::GetLinuxField<int>("VmSize:", this->procLocation_ + LinuxParser::Parser::kStatusFilename);
 
   std::stringstream mbRam;
-  mbRam << std::fixed << std::setprecision(2) << (float)kbRam/100;
+  mbRam << std::fixed << std::setprecision(2) << (float)kbRam/1000;
   return mbRam.str();
 }
 
